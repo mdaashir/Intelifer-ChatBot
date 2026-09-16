@@ -13,8 +13,9 @@ server rather than trusted to the client.
 ## What it does
 
 - Register or sign in and get a JWT.
-- Hold a private conversation with a rule-based bot over SignalR, with replies
-  arriving in real time.
+- Hold a private conversation with a bot over SignalR, with replies arriving in real
+  time. The bot is rule-based by default and uses a language model when one is
+  configured; both sit behind the same interface.
 - Messages are persisted in SQL Server and scoped to both the signed-in user and a
   client-generated session id, so a page refresh restores the conversation.
 - Administrators get an account-management panel: list, create, edit, delete users,
@@ -73,7 +74,7 @@ server/
     Intellifer.Chatbot.Infrastructure/   Persistence (+ Migrations), Security
     Intellifer.Chatbot.Web/              Controllers, Hubs, Common, Program.cs, Dockerfile
   tests/
-    Intellifer.Chatbot.UnitTests/        54 tests, no Docker required
+    Intellifer.Chatbot.UnitTests/        84 tests, no Docker required
     Intellifer.Chatbot.IntegrationTests/ 21 tests, real SQL Server via Testcontainers
 docker-compose.yml
 README.md
@@ -199,21 +200,64 @@ the query string is never treated as a token source for the REST API.
 
 ---
 
-## The bot
+## The bot: rule-based, a language model, or both
 
-`RuleBasedBotResponder` matches greetings, thanks, farewells and a few questions, and
-otherwise falls back. It is deliberately behind `IBotResponder`:
+Both responders sit behind the same port, so nothing above them knows which one
+answered:
 
 ```csharp
 public interface IBotResponder
 {
-    Task<string> GetReplyAsync(string content, CancellationToken cancellationToken = default);
+    Task<string> GetReplyAsync(BotConversation conversation, CancellationToken cancellationToken = default);
 }
 ```
 
-Swapping in a real language model means writing one new class and changing one
-registration in `Program.cs`. Nothing in `ChatMessageService`, the hub, the database
-schema or the client changes.
+- **`RuleBasedBotResponder`** (Application) matches greetings, thanks, farewells and a
+  few questions, and otherwise falls back. It is pure and stateless, so it is unit
+  tested with no infrastructure at all.
+- **`AiBotResponder`** (Infrastructure) sends the conversation to a language model. It
+  maps prior bot turns to `assistant` and visitor turns to `user`, keeps only the most
+  recent `HistoryMessages`, and merges consecutive same-role turns — a reply that
+  failed to persist leaves two user turns in a row, and some providers reject a
+  conversation that does not alternate.
+
+`Bot:Mode` decides which one answers:
+
+| Mode | Behaviour |
+|---|---|
+| `Rules` | Rules only. The AI is never called, which keeps runs deterministic. |
+| `Ai` | AI only. A provider failure surfaces rather than being papered over. |
+| `Auto` | **Default.** The AI when `Bot:Ai` has a `BaseUrl` and an `ApiKey`, otherwise the rules; and if a configured call fails, the rules answer instead. |
+
+`Auto` is why this runs out of the box: with no key and no network it is simply a
+rule-based bot, and a wrong key, a rate limit or an unreachable endpoint degrades into
+a rule-based answer rather than an error in the chat window.
+
+### Pointing it at a model
+
+Because the adapter speaks the OpenAI chat completions format, the same settings cover
+OpenAI, Azure OpenAI, OpenRouter, Groq, Together, vLLM, LM Studio and Ollama:
+
+```jsonc
+"Bot": {
+  "Mode": "Auto",
+  "Ai": {
+    "Provider": "OpenAi",                     // or "Anthropic"
+    "BaseUrl": "http://localhost:11434/v1",   // e.g. a local Ollama
+    "ApiKey": "ollama",                       // required to be non-empty, unused locally
+    "Model": "llama3.1"
+  }
+}
+```
+
+For Anthropic, set `Provider` to `Anthropic` and `BaseUrl` to `https://api.anthropic.com`.
+That adapter is not a copy of the OpenAI one: the key travels in `x-api-key` rather than
+a bearer token, a version header is required, and the system prompt is hoisted out of the
+conversation into a top-level field.
+
+Every transport, protocol and parsing failure is normalised into a single
+`AiChatClientException`. That is what makes the fallback precise: it catches that type
+and nothing else, so a genuine bug surfaces instead of hiding behind a canned reply.
 
 ---
 
@@ -286,13 +330,19 @@ Override these before using this anywhere that matters:
 | `Jwt:SigningKey` | HMAC-SHA256 key, **at least 32 bytes**, validated at startup |
 | `Jwt:ExpiryMinutes` | Access token lifetime (default 60) |
 | `SeedAdmin:Email`, `SeedAdmin:Password` | Account created on first run |
+| `Bot:Mode` | `Rules`, `Ai` or `Auto` (default) |
+| `Bot:SystemPrompt` | System prompt sent to the model |
+| `Bot:HistoryMessages` | How many prior turns to send; `0` disables context |
+| `Bot:Ai:Provider` | `OpenAi` (default) or `Anthropic` |
+| `Bot:Ai:BaseUrl`, `Bot:Ai:ApiKey`, `Bot:Ai:Model` | Endpoint, credential and model |
+| `Bot:Ai:MaxTokens`, `Bot:Ai:TimeoutSeconds` | Reply cap and per-request timeout |
 
 ---
 
 ## Tests
 
 ```bash
-# 54 tests, no Docker needed
+# 84 tests, no Docker needed
 dotnet test server/tests/Intellifer.Chatbot.UnitTests
 
 # 21 tests, starts a throwaway SQL Server container
@@ -363,7 +413,8 @@ than calling `GetRolesAsync` per user.
 - No refresh token, so a session simply ends when the token expires.
 - No rate limiting on the hub or the login endpoint.
 - The seeded administrator's password is a committed development default.
-- The bot is rule-based and does not call a language model.
+- The AI responder is dormant until `Bot:Ai` is configured, and once it is there is no
+  token or cost control and no rate limiting on it.
 - `localStorage` means two tabs of the same browser share one conversation.
 - The client test suite deliberately covers only `ChatService`'s session handling; the
   rest of the client behaviour is exercised by building and running it.

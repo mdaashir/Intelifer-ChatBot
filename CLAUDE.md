@@ -114,6 +114,28 @@ async/await — not generic script-style or Node/Express-style shortcuts.
 - `GET /api/messages?sessionId=...` hydrates that session's history on load;
   SignalR only carries live updates, not the initial load
 
+## The bot
+
+- `IBotResponder` takes a `BotConversation` — the new prompt plus the turns that came
+  before it — not a bare string. `ChatMessageService` reads that history *before* it
+  persists the new message, and bounds it with `BotConversation.MaxHistoryTurns`
+- Two implementations coexist behind that port and are chosen by `Bot:Mode`:
+  `RuleBasedBotResponder` in `Application` (pure, stateless, testable with no
+  infrastructure) and `AiBotResponder` in `Infrastructure` over `IAiChatClient`
+- `Auto` is the default and the reason the project runs with no key at all: the AI is
+  used when `Bot:Ai:BaseUrl` and `:ApiKey` are set, otherwise the rules, and the rules
+  answer if a configured AI call fails. `Rules` and `Ai` force one or the other
+- `FallbackBotResponder` catches `AiChatClientException` and nothing else. Every
+  provider failure is normalised into that one type by `AiChatClientBase` precisely so
+  the catch can stay narrow — a genuine bug must surface rather than hide behind a
+  canned reply
+- Both adapters live in `Infrastructure/Ai`. OpenAI speaks `chat/completions`, which is
+  the more useful of the two because that format also covers Azure OpenAI, OpenRouter,
+  Groq, vLLM, LM Studio and Ollama. Anthropic speaks `v1/messages` with `x-api-key`, a
+  version header and no system role, so the system prompt is hoisted to a top-level field
+- Never call a provider from a hub or a controller — it goes through `IAiChatClient`
+- The integration tests pin `Bot:Mode` to `Rules` so nothing reaches for a network
+
 ## Frontend conventions
 
 - `ChatService` owns the session id: read it from `localStorage` on init,
@@ -176,7 +198,8 @@ dotnet ef migrations add <Name> --project server/src/Intellifer.Chatbot.Infrastr
 - No multi-room / multi-user chat, no SignalR Groups
 - No email of any kind — no confirmation, no self-service reset links
 - No refresh tokens or token revocation
-- No real LLM call — `IBotResponder` is the extension point, don't build it
+- The AI path is optional and dormant until `Bot:Ai` is configured; there is no token,
+  cost or rate control on it
 - No admin access to other users' conversations; that boundary is deliberate
 
 ## Skills
