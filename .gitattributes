@@ -1,0 +1,14 @@
+# Normalise line endings in the repository itself. The client and both container
+# images are built on Linux, so keeping LF in the index and in every checkout stops
+# CRLF creeping into files that Linux tooling reads (nginx.conf, Dockerfiles).
+* text=auto eol=lf
+
+*.ico binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.webp binary
+*.dll binary
+*.pdb binary
+*.woff binary
+*.woff2 binary
