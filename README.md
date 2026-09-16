@@ -75,7 +75,7 @@ server/
     Intellifer.Chatbot.Web/              Controllers, Hubs, Common, Program.cs, Dockerfile
   tests/
     Intellifer.Chatbot.UnitTests/        84 tests, no Docker required
-    Intellifer.Chatbot.IntegrationTests/ 21 tests, real SQL Server via Testcontainers
+    Intellifer.Chatbot.IntegrationTests/ 26 tests, real SQL Server via Testcontainers
 docker-compose.yml
 README.md
 ```
@@ -345,7 +345,7 @@ Override these before using this anywhere that matters:
 # 84 tests, no Docker needed
 dotnet test server/tests/Intellifer.Chatbot.UnitTests
 
-# 21 tests, starts a throwaway SQL Server container
+# 26 tests, starts a throwaway SQL Server container
 dotnet test server/tests/Intellifer.Chatbot.IntegrationTests
 
 # 3 tests

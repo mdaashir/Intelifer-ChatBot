@@ -10,10 +10,14 @@ namespace Intellifer.Chatbot.IntegrationTests.Fixtures;
 public sealed class ChatbotApiFactory : WebApplicationFactory<Program>
 {
     private readonly string _connectionString;
+    private readonly IReadOnlyDictionary<string, string?> _overrides;
 
-    public ChatbotApiFactory(string connectionString)
+    public ChatbotApiFactory(
+        string connectionString,
+        IReadOnlyDictionary<string, string?>? overrides = null)
     {
         _connectionString = connectionString;
+        _overrides = overrides ?? new Dictionary<string, string?>();
     }
 
     public async Task InitializeDatabaseAsync()
@@ -57,7 +61,7 @@ public sealed class ChatbotApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureAppConfiguration((_, configuration) =>
         {
-            configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            var settings = new Dictionary<string, string?>
             {
                 ["ConnectionStrings:Default"] = _connectionString,
                 ["Database:ApplyMigrationsOnStartup"] = "false",
@@ -68,9 +72,17 @@ public sealed class ChatbotApiFactory : WebApplicationFactory<Program>
                 ["SeedAdmin:Password"] = string.Empty,
 
                 // Pin the bot to the rules so these tests never reach for a network and
-                // the assertions stay deterministic.
+                // the assertions stay deterministic. Individual tests override this to
+                // exercise the other modes.
                 ["Bot:Mode"] = "Rules"
-            });
+            };
+
+            foreach (var setting in _overrides)
+            {
+                settings[setting.Key] = setting.Value;
+            }
+
+            configuration.AddInMemoryCollection(settings);
         });
     }
 }
