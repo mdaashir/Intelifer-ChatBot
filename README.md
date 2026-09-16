@@ -64,17 +64,19 @@ Architecture usually gets fudged:
 ### Repository layout
 
 ```
-Intellifer.Chatbot.slnx
-src/
-  Intellifer.Chatbot.Domain/           Entities, Enums
-  Intellifer.Chatbot.Application/      Common, Dtos, Interfaces, Policies, Services
-  Intellifer.Chatbot.Infrastructure/   Persistence (+ Migrations), Security
-  Intellifer.Chatbot.Web/              Controllers, Hubs, Common, Program.cs, Dockerfile
-tests/
-  Intellifer.Chatbot.UnitTests/        54 tests, no Docker required
-  Intellifer.Chatbot.IntegrationTests/ 21 tests, real SQL Server via Testcontainers
 client/                                Angular 22 app, Material, nginx + Dockerfile
+server/
+  Intellifer.Chatbot.slnx
+  src/
+    Intellifer.Chatbot.Domain/           Entities, Enums
+    Intellifer.Chatbot.Application/      Common, Dtos, Interfaces, Policies, Services
+    Intellifer.Chatbot.Infrastructure/   Persistence (+ Migrations), Security
+    Intellifer.Chatbot.Web/              Controllers, Hubs, Common, Program.cs, Dockerfile
+  tests/
+    Intellifer.Chatbot.UnitTests/        54 tests, no Docker required
+    Intellifer.Chatbot.IntegrationTests/ 21 tests, real SQL Server via Testcontainers
 docker-compose.yml
+README.md
 ```
 
 ---
@@ -257,7 +259,7 @@ Override these before using this anywhere that matters:
    `true` in `appsettings.Development.json`:
 
    ```bash
-   dotnet run --project src/Intellifer.Chatbot.Web
+   dotnet run --project server/src/Intellifer.Chatbot.Web
    ```
 
    Listening on <http://localhost:5080>. In Development the OpenAPI document is served
@@ -291,10 +293,10 @@ Override these before using this anywhere that matters:
 
 ```bash
 # 54 tests, no Docker needed
-dotnet test tests/Intellifer.Chatbot.UnitTests
+dotnet test server/tests/Intellifer.Chatbot.UnitTests
 
 # 21 tests, starts a throwaway SQL Server container
-dotnet test tests/Intellifer.Chatbot.IntegrationTests
+dotnet test server/tests/Intellifer.Chatbot.IntegrationTests
 
 # 3 tests
 cd client && npm test

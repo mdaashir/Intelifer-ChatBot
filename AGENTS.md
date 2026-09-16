@@ -131,20 +131,30 @@ async/await — not generic script-style or Node/Express-style shortcuts.
   `| async`. A plain `subscribe()` assigning to a field will not update the view
 - Angular Material for all UI; custom CSS only for the chat bubbles
 
+## Repository layout
+
+Two halves, side by side at the root: the Angular application and the .NET backend.
+
+- `client/` — Angular 22 app, plus its Dockerfile and the nginx config
+- `server/Intellifer.Chatbot.slnx` — the solution, kept next to the backend it describes
+- `server/src/` — Domain, Application, Infrastructure, Web
+- `server/tests/` — UnitTests (no Docker needed), IntegrationTests (Testcontainers)
+- `docker-compose.yml` — brings up SQL Server, the API and the client
+
 ## Commands
 
 ```bash
 docker compose up --build            # whole stack, then http://localhost:4200
 docker compose up -d sqlserver       # just the dev database
-dotnet run --project src/Intellifer.Chatbot.Web
+dotnet run --project server/src/Intellifer.Chatbot.Web
 cd client && npm start               # ng serve on :4200, proxies to :5080
 
-dotnet test tests/Intellifer.Chatbot.UnitTests          # no Docker needed
-dotnet test tests/Intellifer.Chatbot.IntegrationTests   # needs Docker
+dotnet test server/tests/Intellifer.Chatbot.UnitTests          # no Docker needed
+dotnet test server/tests/Intellifer.Chatbot.IntegrationTests   # needs Docker
 cd client && npm test
 
-dotnet ef migrations add <Name> --project src/Intellifer.Chatbot.Infrastructure \
-  --startup-project src/Intellifer.Chatbot.Web --output-dir Persistence/Migrations
+dotnet ef migrations add <Name> --project server/src/Intellifer.Chatbot.Infrastructure \
+  --startup-project server/src/Intellifer.Chatbot.Web --output-dir Persistence/Migrations
 ```
 
 ## Definition of done

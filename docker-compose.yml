@@ -22,7 +22,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: src/Intellifer.Chatbot.Web/Dockerfile
+      dockerfile: server/src/Intellifer.Chatbot.Web/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Default: "Server=sqlserver,1433;Database=IntelliferChatbot;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True"
