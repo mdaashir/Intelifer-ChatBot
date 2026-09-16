@@ -1,3 +1,4 @@
+using Intellifer.Chatbot.Application.Dtos;
 using Intellifer.Chatbot.Application.Services;
 using Intellifer.Chatbot.Domain.Entities;
 using Intellifer.Chatbot.Domain.Enums;
@@ -58,7 +59,7 @@ public sealed class ChatMessageServiceTests
         await CreateService().SaveAndRespondAsync(UserId, SessionId, "   hello   ");
 
         Assert.Equal("hello", _repository.Messages[0].Content);
-        Assert.Equal("hello", Assert.Single(_botResponder.ReceivedContents));
+        Assert.Equal("hello", Assert.Single(_botResponder.ReceivedConversations).Prompt);
     }
 
     [Fact]
@@ -67,6 +68,61 @@ public sealed class ChatMessageServiceTests
         await CreateService().SaveAndRespondAsync(UserId, SessionId, "hello");
 
         Assert.All(_repository.Messages, message => Assert.Equal(Now, message.CreatedAtUtc));
+    }
+
+    [Fact]
+    public async Task SaveAndRespondAsync_OnAFreshSession_GivesTheResponderNoHistory()
+    {
+        await CreateService().SaveAndRespondAsync(UserId, SessionId, "hello");
+
+        Assert.Empty(Assert.Single(_botResponder.ReceivedConversations).History);
+    }
+
+    [Fact]
+    public async Task SaveAndRespondAsync_GivesTheResponderTheEarlierTurnsButNotThePrompt()
+    {
+        var service = CreateService();
+        await service.SaveAndRespondAsync(UserId, SessionId, "first");
+        await service.SaveAndRespondAsync(UserId, SessionId, "second");
+
+        var conversation = _botResponder.ReceivedConversations[^1];
+
+        Assert.Equal("second", conversation.Prompt);
+        Assert.Equal(
+            new[] { "first", "bot reply" },
+            conversation.History.Select(turn => turn.Content));
+        Assert.Equal(
+            new[] { MessageSender.User, MessageSender.Bot },
+            conversation.History.Select(turn => turn.Sender));
+    }
+
+    [Fact]
+    public async Task SaveAndRespondAsync_DoesNotLeakAnotherSessionsTurnsIntoTheHistory()
+    {
+        var service = CreateService();
+        await service.SaveAndRespondAsync(UserId, Guid.NewGuid(), "elsewhere");
+        await service.SaveAndRespondAsync(UserId, SessionId, "here");
+
+        var conversations = _botResponder.ReceivedConversations;
+
+        // Neither session may see the other's turns, in either direction.
+        Assert.Equal(2, conversations.Count);
+        Assert.All(conversations, conversation => Assert.Empty(conversation.History));
+    }
+
+    [Fact]
+    public async Task SaveAndRespondAsync_BoundsHowMuchHistoryItLoads()
+    {
+        var service = CreateService();
+
+        for (var index = 0; index < 25; index++)
+        {
+            await service.SaveAndRespondAsync(UserId, SessionId, $"message {index}");
+        }
+
+        Assert.Equal(
+            BotConversation.MaxHistoryTurns,
+            _botResponder.ReceivedConversations[^1].History.Count);
     }
 
     [Theory]
@@ -80,7 +136,7 @@ public sealed class ChatMessageServiceTests
         Assert.False(result.Succeeded);
         Assert.NotEmpty(result.Errors);
         Assert.Empty(_repository.Messages);
-        Assert.Empty(_botResponder.ReceivedContents);
+        Assert.Empty(_botResponder.ReceivedConversations);
     }
 
     [Fact]

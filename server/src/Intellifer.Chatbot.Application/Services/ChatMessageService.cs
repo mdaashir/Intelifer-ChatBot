@@ -33,6 +33,14 @@ public sealed class ChatMessageService : IChatMessageService
 
         var trimmed = content!.Trim();
 
+        // Read the context before persisting the new message, so what the responder
+        // receives as history is genuinely what came before the prompt.
+        var priorTurns = await _repository.GetRecentAsync(
+            sessionId,
+            userId,
+            BotConversation.MaxHistoryTurns,
+            cancellationToken);
+
         // Saved one at a time and in order so the identity column guarantees the
         // reply always sorts after the message that prompted it.
         var userMessage = new ChatMessage
@@ -46,7 +54,11 @@ public sealed class ChatMessageService : IChatMessageService
 
         await _repository.AddAsync(userMessage, cancellationToken);
 
-        var reply = await _botResponder.GetReplyAsync(trimmed, cancellationToken);
+        var conversation = new BotConversation(
+            trimmed,
+            priorTurns.Select(turn => new BotTurn(turn.Sender, turn.Content)).ToList());
+
+        var reply = await _botResponder.GetReplyAsync(conversation, cancellationToken);
 
         var botMessage = new ChatMessage
         {

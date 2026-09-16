@@ -30,4 +30,19 @@ public sealed class FakeChatRepository : IChatRepository
 
         return Task.FromResult(matching);
     }
+
+    public Task<IReadOnlyList<ChatMessage>> GetRecentAsync(
+        Guid sessionId,
+        string userId,
+        int count,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<ChatMessage> recent = _messages
+            .Where(message => message.SessionId == sessionId && message.UserId == userId)
+            .OrderBy(message => message.Id)
+            .TakeLast(count)
+            .ToList();
+
+        return Task.FromResult(recent);
+    }
 }

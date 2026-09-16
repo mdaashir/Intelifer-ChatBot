@@ -1,3 +1,4 @@
+using Intellifer.Chatbot.Application.Dtos;
 using Intellifer.Chatbot.Application.Interfaces;
 
 namespace Intellifer.Chatbot.Application.Services;
@@ -31,9 +32,15 @@ public sealed class RuleBasedBotResponder : IBotResponder
             "Goodbye! Refresh the page whenever you like - I'll still remember this conversation.")
     ];
 
-    public Task<string> GetReplyAsync(string content, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Deliberately ignores <see cref="BotConversation.History"/>. The rules are
+    /// stateless keyword matches, so using the history would change nothing.
+    /// </summary>
+    public Task<string> GetReplyAsync(
+        BotConversation conversation,
+        CancellationToken cancellationToken = default)
     {
-        var normalized = content.ToLowerInvariant();
+        var normalized = conversation.Prompt.ToLowerInvariant();
         var words = normalized.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
 
         foreach (var rule in Rules)

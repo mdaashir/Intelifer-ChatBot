@@ -31,4 +31,24 @@ public sealed class ChatRepository : IChatRepository
             .OrderBy(message => message.Id)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<ChatMessage>> GetRecentAsync(
+        Guid sessionId,
+        string userId,
+        int count,
+        CancellationToken cancellationToken = default)
+    {
+        // Read newest first so the Take can stop early, then flip back to
+        // chronological order for the caller.
+        var recent = await _context.ChatMessages
+            .AsNoTracking()
+            .Where(message => message.SessionId == sessionId && message.UserId == userId)
+            .OrderByDescending(message => message.Id)
+            .Take(count)
+            .ToListAsync(cancellationToken);
+
+        recent.Reverse();
+
+        return recent;
+    }
 }
