@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Intellifer.Chatbot.Domain\Intellifer.Chatbot.Domain.csproj" />
     <ProjectReference Include="..\..\src\Intellifer.Chatbot.Application\Intellifer.Chatbot.Application.csproj" />
+    <ProjectReference Include="..\..\src\Intellifer.Chatbot.Infrastructure\Intellifer.Chatbot.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
