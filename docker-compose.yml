@@ -1,0 +1,57 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd}"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -b -Q 'SELECT 1' -o /dev/null",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  api:
+    build:
+      context: .
+      dockerfile: src/Intellifer.Chatbot.Web/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Server=sqlserver,1433;Database=IntelliferChatbot;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True"
+
+      # Demo convenience so that 'docker compose up' is genuinely one command. A real
+      # deployment applies migrations as its own step and leaves this off.
+      Database__ApplyMigrationsOnStartup: "true"
+
+      Jwt__Issuer: "Intellifer.Chatbot"
+      Jwt__Audience: "Intellifer.Chatbot.Client"
+
+      # Dev-only defaults. Override JWT_SIGNING_KEY and SEED_ADMIN_PASSWORD before
+      # running this anywhere that matters.
+      Jwt__SigningKey: "${JWT_SIGNING_KEY:-compose-only-signing-key-change-me-before-real-use}"
+      SeedAdmin__Email: "${SEED_ADMIN_EMAIL:-admin@intellifer.local}"
+      SeedAdmin__Password: "${SEED_ADMIN_PASSWORD:-Admin123!}"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    ports:
+      - "5080:8080"
+
+  client:
+    build:
+      context: ./client
+    depends_on:
+      - api
+    ports:
+      - "4200:80"
+
+volumes:
+  sqlserver-data:
