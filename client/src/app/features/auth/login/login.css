@@ -1,0 +1,24 @@
+:host {
+  display: flex;
+  justify-content: center;
+  padding-top: 3rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 26rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.auth-errors {
+  margin: 0 0 0.5rem;
+  padding-left: 1.25rem;
+  color: var(--mat-sys-error);
+  font: var(--mat-sys-body-small);
+}

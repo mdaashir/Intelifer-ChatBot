@@ -1,0 +1,54 @@
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>Your account</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    <dl class="profile-details">
+      <dt>Email</dt>
+      <dd>{{ user()?.email }}</dd>
+      <dt>Roles</dt>
+      <dd>{{ user()?.roles?.join(', ') }}</dd>
+    </dl>
+  </mat-card-content>
+</mat-card>
+
+<mat-card class="profile-password">
+  <mat-card-header>
+    <mat-card-title>Change password</mat-card-title>
+    <mat-card-subtitle>There is no reset email, so keep this up to date</mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-card-content>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline">
+        <mat-label>Current password</mat-label>
+        <input matInput type="password" formControlName="currentPassword" autocomplete="current-password" />
+        @if (form.controls.currentPassword.hasError('required')) {
+          <mat-error>Your current password is required.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>New password</mat-label>
+        <input matInput type="password" formControlName="newPassword" autocomplete="new-password" />
+        <mat-hint>At least 8 characters.</mat-hint>
+        @if (form.controls.newPassword.hasError('minlength')) {
+          <mat-error>Use at least 8 characters.</mat-error>
+        }
+      </mat-form-field>
+
+      @if (errors().length > 0) {
+        <ul class="profile-errors">
+          @for (error of errors(); track error) {
+            <li>{{ error }}</li>
+          }
+        </ul>
+      }
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="submitting()">
+        {{ submitting() ? 'Saving…' : 'Change password' }}
+      </button>
+    </form>
+  </mat-card-content>
+</mat-card>

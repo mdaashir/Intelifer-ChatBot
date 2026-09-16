@@ -1,0 +1,22 @@
+<mat-toolbar class="app-toolbar">
+  <span class="app-title">Intellifer Chatbot</span>
+
+  @if (auth.isAuthenticated()) {
+    <nav class="app-nav">
+      <a mat-button routerLink="/chat">Chat</a>
+      @if (auth.isAdmin()) {
+        <a mat-button routerLink="/admin/users">Users</a>
+      }
+      <a mat-button routerLink="/profile">Profile</a>
+    </nav>
+
+    <span class="app-spacer"></span>
+
+    <span class="app-user">{{ auth.user()?.email }}</span>
+    <button mat-button type="button" (click)="logout()">Sign out</button>
+  }
+</mat-toolbar>
+
+<main class="app-content">
+  <router-outlet />
+</main>

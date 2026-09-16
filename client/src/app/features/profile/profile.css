@@ -1,0 +1,33 @@
+.profile-password {
+  margin-top: 1.5rem;
+}
+
+.profile-details {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0;
+}
+
+.profile-details dt {
+  font: var(--mat-sys-body-small);
+  opacity: 0.7;
+}
+
+.profile-details dd {
+  margin: 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.profile-errors {
+  margin: 0 0 0.5rem;
+  padding-left: 1.25rem;
+  color: var(--mat-sys-error);
+  font: var(--mat-sys-body-small);
+}

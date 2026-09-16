@@ -1,0 +1,53 @@
+<section class="chat">
+  <header class="chat-header">
+    <div>
+      <h2 class="chat-title">Conversation</h2>
+      <p class="chat-session">Session {{ session() }}</p>
+    </div>
+
+    <div class="chat-header-actions">
+      <span class="chat-status" [class.chat-status--online]="connected()">
+        {{ connected() ? 'Connected' : 'Connecting…' }}
+      </span>
+      <button mat-stroked-button type="button" (click)="newConversation()">
+        New conversation
+      </button>
+    </div>
+  </header>
+
+  <div class="chat-scroll">
+    @for (message of messages$ | async; track message.id) {
+      <article
+        class="bubble"
+        [class.bubble--user]="message.sender === 'User'"
+        [class.bubble--bot]="message.sender === 'Bot'"
+      >
+        <p class="bubble-text">{{ message.content }}</p>
+        <time class="bubble-time">{{ message.createdAtUtc | date: 'shortTime' }}</time>
+      </article>
+    } @empty {
+      <p class="chat-empty">No messages yet — say hello to the assistant.</p>
+    }
+
+    <div #scrollAnchor></div>
+  </div>
+
+  <form class="chat-composer" (ngSubmit)="send()">
+    <mat-form-field appearance="outline" class="chat-input">
+      <mat-label>Message</mat-label>
+      <input
+        matInput
+        name="draft"
+        autocomplete="off"
+        [maxlength]="maxLength"
+        [ngModel]="draft()"
+        (ngModelChange)="draft.set($event)"
+      />
+      <mat-hint align="end">{{ draft().length }}/{{ maxLength }}</mat-hint>
+    </mat-form-field>
+
+    <button mat-flat-button color="primary" type="submit" [disabled]="!canSend()">
+      {{ sending() ? 'Sending…' : 'Send' }}
+    </button>
+  </form>
+</section>
