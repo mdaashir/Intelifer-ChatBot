@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Intellifer.Chatbot.Application/Intellifer.Chatbot.Application.csproj" />
+    <Project Path="src/Intellifer.Chatbot.Domain/Intellifer.Chatbot.Domain.csproj" />
+    <Project Path="src/Intellifer.Chatbot.Infrastructure/Intellifer.Chatbot.Infrastructure.csproj" />
+    <Project Path="src/Intellifer.Chatbot.Web/Intellifer.Chatbot.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Intellifer.Chatbot.IntegrationTests/Intellifer.Chatbot.IntegrationTests.csproj" />
+    <Project Path="tests/Intellifer.Chatbot.UnitTests/Intellifer.Chatbot.UnitTests.csproj" />
+  </Folder>
+</Solution>
