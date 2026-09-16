@@ -1,0 +1,89 @@
+@host = http://localhost:5080
+@adminEmail = admin@intellifer.local
+@adminPassword = Admin123!
+@newUserEmail = new.user@example.com
+@newUserPassword = Password123
+
+# Replace these with real values from a previous response or the database.
+@sessionId = replace-with-a-session-guid
+@userId = replace-with-a-user-id
+
+### Register a new account (always gets the User role)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{newUserEmail}}",
+  "password": "{{newUserPassword}}"
+}
+
+### Sign in as the seeded administrator
+# @name adminLogin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+@adminToken = {{adminLogin.response.body.accessToken}}
+
+### Who am I
+GET {{host}}/api/auth/me
+Authorization: Bearer {{adminToken}}
+
+### Change my own password
+POST {{host}}/api/auth/change-password
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "{{adminPassword}}",
+  "newPassword": "Admin456!"
+}
+
+### List accounts (Admin only - a non-admin gets 403)
+GET {{host}}/api/admin/users
+Authorization: Bearer {{adminToken}}
+
+### Create an account (Admin only)
+POST {{host}}/api/admin/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "{{newUserEmail}}",
+  "password": "{{newUserPassword}}",
+  "role": "User"
+}
+
+### Update an account's email and role (Admin only)
+PUT {{host}}/api/admin/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "{{newUserEmail}}",
+  "role": "Admin"
+}
+
+### Reset an account's password (Admin only)
+POST {{host}}/api/admin/users/{{userId}}/reset-password
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "newPassword": "Password456"
+}
+
+### Delete an account and its conversations (Admin only)
+DELETE {{host}}/api/admin/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+
+### Load a session's history
+GET {{host}}/api/messages?sessionId={{sessionId}}
+Authorization: Bearer {{adminToken}}
+
+### No token - expect 401
+GET {{host}}/api/admin/users
