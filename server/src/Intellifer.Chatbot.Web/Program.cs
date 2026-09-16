@@ -3,6 +3,8 @@ using System.Text.Json.Serialization;
 using Intellifer.Chatbot.Application.Common;
 using Intellifer.Chatbot.Application.Interfaces;
 using Intellifer.Chatbot.Application.Services;
+using Intellifer.Chatbot.Infrastructure.Ai;
+using Intellifer.Chatbot.Infrastructure.Bot;
 using Intellifer.Chatbot.Infrastructure.Persistence;
 using Intellifer.Chatbot.Infrastructure.Security;
 using Intellifer.Chatbot.Web.Hubs;
@@ -117,7 +119,6 @@ builder.Services.AddAuthorization();
 
 // ----------------------------------------------------------- application layer
 builder.Services.AddSingleton<IClock, SystemClock>();
-builder.Services.AddSingleton<IBotResponder, RuleBasedBotResponder>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddSingleton<IChatBroadcaster, ChatBroadcaster>();
 
@@ -126,6 +127,65 @@ builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<IChatMessageService, ChatMessageService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<DbInitializer>();
+
+// --------------------------------------------------------------------- the bot
+builder.Services
+    .AddOptions<BotOptions>()
+    .Bind(builder.Configuration.GetSection(BotOptions.SectionName));
+
+builder.Services
+    .AddOptions<AiChatClientOptions>()
+    .Bind(builder.Configuration.GetSection(AiChatClientOptions.SectionName));
+
+builder.Services.AddSingleton<RuleBasedBotResponder>();
+builder.Services.AddHttpClient<OpenAiChatClient>();
+builder.Services.AddHttpClient<AnthropicChatClient>();
+
+builder.Services.AddScoped<IAiChatClient>(serviceProvider =>
+{
+    var provider = serviceProvider.GetRequiredService<IOptions<AiChatClientOptions>>().Value.Provider;
+
+    if (provider == AiProvider.Anthropic)
+    {
+        return serviceProvider.GetRequiredService<AnthropicChatClient>();
+    }
+
+    return serviceProvider.GetRequiredService<OpenAiChatClient>();
+});
+
+builder.Services.AddScoped<AiBotResponder>();
+builder.Services.AddScoped<FallbackBotResponder>();
+
+// Which responder answers is a deployment decision, so it is settled here in the
+// composition root rather than guessed at inside the application layer.
+builder.Services.AddScoped<IBotResponder>(serviceProvider =>
+{
+    var mode = serviceProvider.GetRequiredService<IOptions<BotOptions>>().Value.Mode;
+
+    if (mode == BotMode.Rules)
+    {
+        return serviceProvider.GetRequiredService<RuleBasedBotResponder>();
+    }
+
+    if (mode == BotMode.Ai)
+    {
+        return serviceProvider.GetRequiredService<AiBotResponder>();
+    }
+
+    // Auto: use the AI when it is actually configured, and keep the rules as a safety
+    // net so a bad key or an unreachable provider still produces an answer.
+    var isConfigured = serviceProvider
+        .GetRequiredService<IOptions<AiChatClientOptions>>()
+        .Value
+        .IsConfigured;
+
+    if (isConfigured)
+    {
+        return serviceProvider.GetRequiredService<FallbackBotResponder>();
+    }
+
+    return serviceProvider.GetRequiredService<RuleBasedBotResponder>();
+});
 
 // ------------------------------------------------------------------ web layer
 builder.Services

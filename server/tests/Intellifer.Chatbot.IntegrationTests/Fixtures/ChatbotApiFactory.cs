@@ -65,7 +65,11 @@ public sealed class ChatbotApiFactory : WebApplicationFactory<Program>
                 ["Jwt:Audience"] = "Intellifer.Chatbot.IntegrationTests.Client",
                 ["Jwt:SigningKey"] = "integration-test-signing-key-that-is-definitely-long-enough",
                 ["SeedAdmin:Email"] = string.Empty,
-                ["SeedAdmin:Password"] = string.Empty
+                ["SeedAdmin:Password"] = string.Empty,
+
+                // Pin the bot to the rules so these tests never reach for a network and
+                // the assertions stay deterministic.
+                ["Bot:Mode"] = "Rules"
             });
         });
     }
