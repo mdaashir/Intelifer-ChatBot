@@ -9,7 +9,7 @@ import { AuthService } from './auth.service';
 describe('AuthService', () => {
   const tokenKey = 'intellifer.accessToken';
 
-  let http: HttpTestingController;
+  let http!: HttpTestingController;
 
   const user = (roles: string[]): User => ({
     id: 'user-1',
@@ -44,7 +44,7 @@ describe('AuthService', () => {
   it('posts the credentials and remembers the session', () => {
     const service = TestBed.inject(AuthService);
 
-    let result: User | undefined;
+    let result!: User | undefined;
     service.login('user@example.com', 'Password123').subscribe((value) => (result = value));
 
     const request = http.expectOne('/api/auth/login');
@@ -116,7 +116,7 @@ describe('AuthService', () => {
   it('resolves to null without calling the API when there is no token', () => {
     const service = TestBed.inject(AuthService);
 
-    let result: User | null | undefined;
+    let result!: User | null | undefined;
     service.loadCurrentUser().subscribe((value) => (result = value));
 
     expect(result).toBeNull();
@@ -146,7 +146,7 @@ describe('AuthService', () => {
 
     const service = TestBed.inject(AuthService);
 
-    let result: User | null | undefined;
+    let result!: User | null | undefined;
     service.loadCurrentUser().subscribe((value) => (result = value));
 
     http

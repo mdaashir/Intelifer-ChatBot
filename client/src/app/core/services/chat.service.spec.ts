@@ -10,7 +10,7 @@ import { ChatService } from './chat.service';
 describe('ChatService', () => {
   const sessionKey = 'intellifer.sessionId';
 
-  let http: HttpTestingController;
+  let http!: HttpTestingController;
 
   beforeEach(() => {
     installLocalStorage();
@@ -78,7 +78,7 @@ describe('ChatService', () => {
     const published: ChatMessage[][] = [];
     service.messages$.subscribe((value) => published.push(value));
 
-    let result: ChatMessage[] | undefined;
+    let result!: ChatMessage[] | undefined;
     service.loadHistory().subscribe((value) => (result = value));
 
     const request = http.expectOne(

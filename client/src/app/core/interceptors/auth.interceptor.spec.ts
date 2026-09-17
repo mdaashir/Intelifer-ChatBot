@@ -9,9 +9,9 @@ import { authInterceptor } from './auth.interceptor';
 describe('authInterceptor', () => {
   const tokenKey = 'intellifer.accessToken';
 
-  let http: HttpClient;
-  let controller: HttpTestingController;
-  let auth: AuthService;
+  let http!: HttpClient;
+  let controller!: HttpTestingController;
+  let auth!: AuthService;
 
   beforeEach(() => {
     installLocalStorage();

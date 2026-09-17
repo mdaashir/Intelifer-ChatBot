@@ -11,7 +11,7 @@ import { guestGuard } from './guest.guard';
 describe('route guards', () => {
   const tokenKey = 'intellifer.accessToken';
 
-  let http: HttpTestingController;
+  let http!: HttpTestingController;
 
   beforeEach(() => {
     installLocalStorage();
