@@ -65,13 +65,13 @@ Architecture usually gets fudged:
 ### Repository layout
 
 ```
-client/                                Angular 22 app, Material, nginx + Dockerfile
+client/                                Angular 22 app, Material, unit + component + e2e tests
 server/
   Intellifer.Chatbot.slnx
   src/
     Intellifer.Chatbot.Domain/           Entities, Enums
     Intellifer.Chatbot.Application/      Common, Dtos, Interfaces, Policies, Services
-    Intellifer.Chatbot.Infrastructure/   Persistence (+ Migrations), Security
+    Intellifer.Chatbot.Infrastructure/   Persistence (+ Migrations), Security, Ai, Bot
     Intellifer.Chatbot.Web/              Controllers, Hubs, Common, Program.cs, Dockerfile
   tests/
     Intellifer.Chatbot.UnitTests/        84 tests, no Docker required
@@ -348,25 +348,39 @@ dotnet test server/tests/Intellifer.Chatbot.UnitTests
 # 26 tests, starts a throwaway SQL Server container
 dotnet test server/tests/Intellifer.Chatbot.IntegrationTests
 
-# 3 tests
+# 55 tests, no browser needed
 cd client && npm test
+
+# 17 tests in a real browser - run 'docker compose up -d sqlserver' first
+cd client && npm run e2e
 ```
 
-The split is intentional: the fast unit suite has no Docker dependency, so it stays in
-the tight feedback loop.
+**Backend unit tests** cover `ChatMessageService` (ordering, session and user scoping,
+trimming, validation, the history it hands the responder, and the case where the bot
+throws mid-conversation), the bot's rules including that "hilarious" is not a greeting,
+`AccountPolicy` — a pure function precisely so the self-delete and last-admin rules can
+be tested without any Identity machinery — and both AI adapters against a stub handler,
+which is what pins the wire format without touching a network.
 
-**Unit tests** cover `ChatMessageService` (ordering, session and user scoping, trimming,
-validation, and the case where the bot throws mid-conversation), the bot's rules
-including that "hilarious" is not a greeting, and `AccountPolicy` — which is a pure
-function precisely so the self-delete and last-admin rules can be tested without any
-Identity machinery.
+**Backend integration tests** run against a real SQL Server and cover what fakes cannot:
+that the schema round-trips, that ordering is by identity column, that deleting an
+account cascades to its messages, that a message longer than `nvarchar(2000)` is rejected
+by the database, that a non-admin receives 403 while an admin receives 200, that another
+user reading a session id gets an empty list, which responder the composition root picks
+for each mode, and that a full hub round-trip delivers exactly two messages to the sender
+and nothing to a second connection.
 
-**Integration tests** run against a real SQL Server and cover what fakes cannot: that
-the schema round-trips, that ordering is by identity column, that deleting an account
-cascades to its messages, that a message longer than `nvarchar(2000)` is rejected by the
-database, that a non-admin receives 403 while an admin receives 200, that another user
-reading a session id gets an empty list, and that a full hub round-trip delivers exactly
-two messages to the sender and nothing to a second connection.
+**Client tests** are the services, guards and interceptor — session handling, token
+handling, the 401 path — plus the components driven through their real templates against
+mocked HTTP and a stubbed hub, so the assertions are about what actually renders.
+
+**End-to-end tests** are the only ones that cross the whole system: a real browser, the
+real API over a real WebSocket, a real database. They are what proves a reply arrives, a
+refresh keeps the thread, and a second account in the same browser sees none of the first
+account's messages.
+
+The split is deliberate: the fast suites need neither Docker nor a browser, so they stay
+in the tight feedback loop.
 
 ---
 

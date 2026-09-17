@@ -163,6 +163,28 @@ Two halves, side by side at the root: the Angular application and the .NET backe
 - `server/tests/` — UnitTests (no Docker needed), IntegrationTests (Testcontainers)
 - `docker-compose.yml` — brings up SQL Server, the API and the client
 
+## Tests
+
+Four layers, each covering what the others cannot:
+
+- `server/tests/Intellifer.Chatbot.UnitTests` — 84 tests, no Docker. Application logic,
+  the bot rules, `AccountPolicy`, and both AI adapters against a stub `HttpMessageHandler`
+- `server/tests/Intellifer.Chatbot.IntegrationTests` — 26 tests, real SQL Server via
+  Testcontainers. The schema, cascade delete, 401/403, session isolation, the responder
+  the composition root actually picks, and a hub round-trip proving the reply reaches
+  only the sending connection
+- `client` unit + component tests (55) — the services, guards, interceptor, and the
+  components driven through their real templates against mocked HTTP and a stubbed hub
+- `client/e2e` (17, Playwright) — the only layer that crosses browser → API → WebSocket →
+  database
+
+Run the client suites from `client/`: `npm test` and `npm run e2e`. The end-to-end suite
+starts the API and the dev server itself but needs SQL Server up first
+(`docker compose up -d sqlserver`).
+
+Never let a test reach a real AI provider. The integration tests pin `Bot:Mode` to
+`Rules`, and the adapter tests assert the request shape against a stub handler.
+
 ## Commands
 
 ```bash
